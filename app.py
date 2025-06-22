@@ -28,11 +28,11 @@ def clean_formula(formula):
 
     while i < len(formula):
         # Try matching two-letter element
-        if i + 1 < len(formula) and formula[i:i+2].capitalize() in atomic_weights:
-            corrected += formula[i:i+2].capitalize()
+        if i + 1 < len(formula) and formula[i:i+2].title() in atomic_weights:
+            corrected += formula[i:i+2].title()
             i += 2
-        elif formula[i].capitalize() in atomic_weights:
-            corrected += formula[i].capitalize()
+        elif formula[i].title() in atomic_weights:
+            corrected += formula[i].title()
             i += 1
         elif formula[i].isdigit() or formula[i] in "()·.*":
             corrected += formula[i]
@@ -40,6 +40,7 @@ def clean_formula(formula):
         else:
             i += 1  # skip invalid character
     return corrected
+
 
 
 # --- Parse formula into element counts ---
