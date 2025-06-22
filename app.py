@@ -6,51 +6,43 @@ st.set_page_config(page_title="Molecular Weight Calculator", layout="centered")
 st.title("🧪 Molecular Weight Calculator")
 st.markdown("Enter a chemical formula like `C6H12O6`, `NaCl`, `Fe2(SO4)3`, or `CuSO4·5H2O`")
 
-# Sidebar guide
+# Sidebar Guide
 st.sidebar.title("📘 User Guide")
 st.sidebar.markdown("""
-- ✅ Enter any chemical formula using standard notation
-- ✅ Works with hydrates (`CuSO4·5H2O`, `BaCl2.2H2O`)
-- ✅ Accepts any case: `h2so4`, `NACL`, `fe(so4)3`
-- 🚫 Charge states (`NH4+`, `[Fe(CN)6]4−`) currently not supported
+- Enter chemical formulas (case-insensitive): `h2so4`, `nacl`, `C6H12O6`
+- Supports parentheses, hydrates, nested groups
+- Autocorrects casing and symbols
 """)
 
-# Sample inputs
-sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O"]
+# Sample Inputs
+sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "no2", "Mg3(PO4)2"]
 sample = st.selectbox("Try a sample formula:", sample_formulas)
 user_input = st.text_input("Or enter your own formula", value=sample)
 
 
-# 1. Case-correction function
+# --- Clean formula with improved logic ---
 def clean_formula(formula):
     formula = formula.strip().replace(" ", "")
     corrected = ""
     i = 0
-    symbols = sorted(atomic_weights.keys(), key=lambda x: -len(x))  # Match longest first
 
     while i < len(formula):
-        matched = False
-        for symbol in symbols:
-            length = len(symbol)
-            if formula[i:i+length].lower() == symbol.lower():
-                corrected += symbol
-                i += length
-                matched = True
-                break
-        if not matched:
-            if formula[i].isdigit() or formula[i] in "()":
-                corrected += formula[i]
-                i += 1
-            elif formula[i] in [".", "·", "*"]:  # treat as hydrate separator
-                corrected += "·"
-                i += 1
-            else:
-                # Skip invalid character or add error handling
-                i += 1
+        # Try matching two-letter element
+        if i + 1 < len(formula) and formula[i:i+2].capitalize() in atomic_weights:
+            corrected += formula[i:i+2].capitalize()
+            i += 2
+        elif formula[i].capitalize() in atomic_weights:
+            corrected += formula[i].capitalize()
+            i += 1
+        elif formula[i].isdigit() or formula[i] in "()·.*":
+            corrected += formula[i]
+            i += 1
+        else:
+            i += 1  # skip invalid character
     return corrected
 
 
-# 2. Formula parser
+# --- Parse formula into element counts ---
 def parse_formula(formula):
     def multiply_group(group, multiplier):
         return {el: cnt * multiplier for el, cnt in group.items()}
@@ -97,12 +89,12 @@ def parse_formula(formula):
     return current
 
 
-# 3. Split on hydrate separators (·, ., *)
+# --- Handle hydrates and dot notation ---
 def split_formula_parts(formula):
     return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
 
 
-# 4. Main logic
+# --- Main Logic ---
 if user_input:
     total_weight = 0.0
     all_parts = split_formula_parts(clean_formula(user_input))
