@@ -27,18 +27,26 @@ def clean_formula(formula):
     i = 0
 
     while i < len(formula):
-        # Try matching two-letter element
-        if i + 1 < len(formula) and formula[i:i+2].title() in atomic_weights:
-            corrected += formula[i:i+2].title()
-            i += 2
-        elif formula[i].title() in atomic_weights:
-            corrected += formula[i].title()
+        # Try matching two-letter element like "No", "Na", etc.
+        if i + 1 < len(formula):
+            two_letter = formula[i].upper() + formula[i+1].lower()
+            if two_letter in atomic_weights:
+                corrected += two_letter
+                i += 2
+                continue
+
+        # Try matching one-letter element
+        one_letter = formula[i].upper()
+        if one_letter in atomic_weights:
+            corrected += one_letter
             i += 1
         elif formula[i].isdigit() or formula[i] in "()·.*":
             corrected += formula[i]
             i += 1
         else:
-            i += 1  # skip invalid character
+            # skip unknown characters
+            i += 1
+
     return corrected
 
 
