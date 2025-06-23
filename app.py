@@ -27,40 +27,40 @@ def clean_formula(formula):
     formula = formula.strip().replace(" ", "")
     corrected = ""
     i = 0
-
-    # Ambiguous exotic elements
-    exotic = {"No", "Lr", "Bh", "Mt", "Rf", "Db", "Sg", "Hs", "Ds", "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"}
+    exotic_elements = {"No", "Lr", "Mt", "Rf", "Db", "Bh", "Hs", "Cn", "Fl", "Lv", "Mc", "Ts", "Og"}
 
     while i < len(formula):
         if i + 1 < len(formula):
-            two = formula[i].upper() + formula[i+1].lower()
-            one = formula[i].upper()
+            two_letter = formula[i].upper() + formula[i+1].lower()
+            one_letter = formula[i].upper()
 
-            if two in exotic:
-                # Check if user typed it in proper casing
-                original = formula[i:i+2]
-                if original != two:
+            if two_letter in exotic_elements and one_letter in atomic_weights and formula[i+1].isdigit():
+                # Potential ambiguity like No2 → could be Nobelium or Nitrogen Dioxide
+                alt_el = formula[i+1].upper()
+                if alt_el in atomic_weights:
                     st.warning(
-                        f"Ambiguous input: `{original}` was interpreted as `{two}` (atomic weight = {atomic_weights[two]}). "
-                        f"If you meant `{one}` + `{formula[i+1]}`, write it that way (e.g., `N` + `O2`)"
+                        f"`{formula}` was interpreted as **{two_letter} × {formula[i+2:]}**. "
+                        f"Did you mean **{one_letter}{alt_el}{formula[i+2:]}** (e.g., Nitrogen Dioxide)? "
+                        f"Try entering with clearer capitalization: `N` + `O2`."
                     )
-                corrected += two
+
+            if two_letter in atomic_weights:
+                corrected += two_letter
                 i += 2
                 continue
 
-        # Regular element (1 or 2 letter) match
-        if i + 1 < len(formula) and (two := formula[i].upper() + formula[i+1].lower()) in atomic_weights:
-            corrected += two
-            i += 2
-        elif (one := formula[i].upper()) in atomic_weights:
-            corrected += one
+        one_letter = formula[i].upper()
+        if one_letter in atomic_weights:
+            corrected += one_letter
             i += 1
         elif formula[i].isdigit() or formula[i] in "()·.*":
             corrected += formula[i]
             i += 1
         else:
-            i += 1  # skip invalid characters
+            i += 1  # skip unknown character
+
     return corrected
+
 
 
 # --- Parse formula into element counts ---
