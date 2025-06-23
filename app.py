@@ -11,56 +11,57 @@ st.sidebar.title("📘 User Guide")
 st.sidebar.markdown("""
 - Enter chemical formulas (case-insensitive): `h2so4`, `nacl`, `C6H12O6`
 - Supports parentheses, hydrates, nested groups
-- Avoid ambiguity (e.g., `NO2` is Nitrogen Dioxide, not Nobelium)
+- Handles ambiguous cases like `NO2` vs. `No2` with intelligent fallback
+- Warns if input is ambiguous (e.g., `No2` could be `No` or `N+O`)
 """)
 
 # Sample Inputs
-sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "NO2", "Mg3(PO4)2"]
+sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "No2", "LrCl3", "BhF6", "NO2"]
 sample = st.selectbox("Try a sample formula:", sample_formulas)
 user_input = st.text_input("Or enter your own formula", value=sample)
 
 
-def smart_tokenize(formula):
-    """Tokenizes a formula favoring common 1-letter over rare 2-letter symbols."""
+# --- Clean formula with smart disambiguation ---
+def clean_formula(formula):
     formula = formula.strip().replace(" ", "")
-    tokens = []
+    corrected = ""
     i = 0
+
     while i < len(formula):
-        if i + 1 < len(formula):
-            two = formula[i].upper() + formula[i+1].lower()
-            one = formula[i].upper()
-            if two in atomic_weights and one in atomic_weights:
-                if atomic_weights[one] < 100:
-                    tokens.append(one)
-                    i += 1
-                else:
-                    tokens.append(two)
-                    i += 2
-            elif two in atomic_weights:
-                tokens.append(two)
-                i += 2
-            elif one in atomic_weights:
-                tokens.append(one)
-                i += 1
-            elif formula[i].isdigit() or formula[i] in "()·.*":
-                tokens.append(formula[i])
+        two_letter = formula[i:i+2].capitalize()  # e.g., "No"
+        one_letter = formula[i].upper()
+
+        is_two_valid = two_letter in atomic_weights
+        is_one_valid = one_letter in atomic_weights
+
+        if is_two_valid and is_one_valid:
+            # Ambiguous: could be two-letter or one-letter + something else
+            if (i + 2 < len(formula)) and formula[i+2].isdigit():
+                # Looks like one-letter + something else (e.g., N + O2)
+                st.warning(f"Ambiguous input at `{two_letter}` — assuming `{one_letter}` + `{formula[i+1]}`. If you meant `{two_letter}`, enter it separately.")
+                corrected += one_letter
                 i += 1
             else:
+                # Default to one-letter still (likely more common)
+                st.warning(f"Ambiguous input at `{two_letter}` — assuming `{one_letter}` + `{formula[i+1]}`. If you meant `{two_letter}`, enter it clearly.")
+                corrected += one_letter
                 i += 1
-        else:
-            one = formula[i].upper()
-            if one in atomic_weights:
-                tokens.append(one)
-            elif formula[i].isdigit() or formula[i] in "()·.*":
-                tokens.append(formula[i])
+
+        elif is_two_valid:
+            corrected += two_letter
+            i += 2
+        elif is_one_valid:
+            corrected += one_letter
             i += 1
-    return ''.join(tokens)
+        elif formula[i].isdigit() or formula[i] in "()·.*":
+            corrected += formula[i]
+            i += 1
+        else:
+            i += 1  # skip invalid
+    return corrected
 
 
-def split_formula_parts(formula):
-    return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
-
-
+# --- Parse formula into element counts ---
 def parse_formula(formula):
     def multiply_group(group, multiplier):
         return {el: cnt * multiplier for el, cnt in group.items()}
@@ -107,11 +108,15 @@ def parse_formula(formula):
     return current
 
 
+# --- Handle hydrates and dot notation ---
+def split_formula_parts(formula):
+    return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
+
+
 # --- Main Logic ---
 if user_input:
-    clean_input = smart_tokenize(user_input)
     total_weight = 0.0
-    all_parts = split_formula_parts(clean_input)
+    all_parts = split_formula_parts(clean_formula(user_input))
 
     st.subheader("🧬 Element Breakdown")
 
