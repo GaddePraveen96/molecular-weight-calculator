@@ -28,37 +28,34 @@ def clean_formula(formula):
     i = 0
 
     while i < len(formula):
-        two_letter = formula[i:i+2].capitalize()  # e.g., "No"
+        # Try matching two-letter element like "No", "Na", etc.
+        if i + 1 < len(formula):
+            two_letter = formula[i].upper() + formula[i+1].lower()
+            if two_letter in atomic_weights:
+                corrected += two_letter
+                i += 2
+                continue
+            elif formula[i].upper() in atomic_weights and formula[i+1].isdigit():
+                one_letter = formula[i].upper()
+                next_char = formula[i+1] if i + 1 < len(formula) else ''
+                st.warning(
+                    f"Ambiguous input at `{two_letter}` — assuming `{one_letter}` + `{next_char}`. "
+                    f"If you meant `{two_letter}`, enter it clearly (e.g., `({two_letter})`)."
+                )
+
+        # Try matching one-letter element
         one_letter = formula[i].upper()
-
-        is_two_valid = two_letter in atomic_weights
-        is_one_valid = one_letter in atomic_weights
-
-        if is_two_valid and is_one_valid:
-            # Ambiguous: could be two-letter or one-letter + something else
-            if (i + 2 < len(formula)) and formula[i+2].isdigit():
-                # Looks like one-letter + something else (e.g., N + O2)
-                st.warning(f"Ambiguous input at `{two_letter}` — assuming `{one_letter}` + `{formula[i+1]}`. If you meant `{two_letter}`, enter it separately.")
-                corrected += one_letter
-                i += 1
-            else:
-                # Default to one-letter still (likely more common)
-                st.warning(f"Ambiguous input at `{two_letter}` — assuming `{one_letter}` + `{formula[i+1]}`. If you meant `{two_letter}`, enter it clearly.")
-                corrected += one_letter
-                i += 1
-
-        elif is_two_valid:
-            corrected += two_letter
-            i += 2
-        elif is_one_valid:
+        if one_letter in atomic_weights:
             corrected += one_letter
             i += 1
         elif formula[i].isdigit() or formula[i] in "()·.*":
             corrected += formula[i]
             i += 1
         else:
-            i += 1  # skip invalid
+            i += 1  # skip unknown character
+
     return corrected
+
 
 
 # --- Parse formula into element counts ---
