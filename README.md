@@ -1,7 +1,9 @@
 A fast, intuitive app to calculate the molecular weight of chemical compounds — including hydrates, nested groups, and exotic elements.
 
 🌐 Try it here:
+
 📘 How to Use
+
 Enter a chemical formula like:
 H2O      → Water  
 NaCl     → Sodium Chloride  
@@ -44,6 +46,7 @@ Formula autocorrection for ambiguous inputs
 Warning system for exotic element ambiguity
 
 🧪 Built With
+
 Python
 
 Streamlit
