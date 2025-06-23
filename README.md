@@ -1,24 +1,51 @@
-# Molecular Weight Calculator
+A fast, intuitive app to calculate the molecular weight of chemical compounds — including hydrates, nested groups, and exotic elements.
 
-This is a free and accurate molecular weight calculator for chemists, pharma scientists, and students.
+🌐 Try it here:
+📘 How to Use
+Enter a chemical formula like:
+H2O      → Water  
+NaCl     → Sodium Chloride  
+Fe2(SO4)3 → Iron(III) Sulfate  
+CuSO4·5H2O → Copper(II) sulfate pentahydrate  
+The app parses your formula, calculates element-wise contributions, and gives you the accurate molecular weight in g/mol.
+⚠️ Formula Entry Guidelines
+✅ Valid Examples
+| Input        | Meaning                                |
+| ------------ | -------------------------------------- |
+| `NO2`        | Nitrogen dioxide (N + O₂)              |
+| `No2`        | Nobelium (No) + 2 (not 2 atoms of No!) |
+| `(No)2`      | Two atoms of Nobelium                  |
+| `C6H12O6`    | Glucose                                |
+| `Mg3(PO4)2`  | Magnesium phosphate                    |
+| `CuSO4·5H2O` | Copper sulfate pentahydrate            |
+ Important Notes
+Capitalization matters:
 
-## 🔗 Live App
-👉 [Use the Molecular Weight Calculator](https://molecular-weight-calculator-qkv9n3wwo8ugcm3se5hvky.streamlit.app/)
+NO = Nitrogen + Oxygen
 
+No = Nobelium (a distinct exotic element)
 
-##Features
-- Parses formulas like `Fe2(SO4)3`, `C6H12O6`, `NaCl`
-- Supports hydrates like `CuSO4·5H2O`, `BaCl2.2H2O`
-- Accepts lowercase or uppercase input (`h2so4`, `NACL`)
-- Returns total molecular weight and per-element breakdown
+Use parentheses for exotic atoms if repeated:
 
-## 🚀 Tech Stack
-- Python
-- Streamlit
-- GitHub + Streamlit Cloud
+✅ (No)2 → 2 Nobelium atoms
 
-## Run Locally
+🚫 No2 → Nobelium + 2, not 2 Nobelium
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
+Hydrates (·, *) are supported.
+
+Extra characters or symbols will be auto-cleaned.
+💻 Features
+Intelligent parsing with nested brackets
+
+Hydrate support (e.g., ·5H2O, *6H2O)
+
+Formula autocorrection for ambiguous inputs
+
+Warning system for exotic element ambiguity
+
+🧪 Built With
+Python
+
+Streamlit
+
+Custom parser with support for all 118 IUPAC-recognized elements
