@@ -9,37 +9,32 @@ st.markdown("Enter a chemical formula like `C6H12O6`, `NaCl`, `Fe2(SO4)3`, or `C
 # Sidebar Guide
 st.sidebar.title("📘 User Guide")
 st.sidebar.markdown("""
-- ✅ Use correct **element capitalization**: `H2O`, `NaCl`, `Fe2(SO4)3`
-- ⚠️ `NO` ≠ `No` — Nitrogen Monoxide vs. Nobelium
-- 💧 Use `·` for hydrates: `CuSO4·5H2O`
-- 🧠 Supports parentheses and nested groups
+- Enter chemical formulas (case-insensitive): `H2SO4`, `NaCl`, `C6H12O6`
+- Use proper element casing: `NO2` for Nitrogen Dioxide (not `No2`, which is Nobelium)
+- Supports parentheses, hydrates (`·`), nested groups
 """)
 
-autocorrect = st.sidebar.checkbox("🔄 Enable Formula Autocorrection", value=True)
-
-# Sample Inputs
-sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "no2", "Mg3(PO4)2"]
+sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "NO2", "Mg3(PO4)2"]
 sample = st.selectbox("Try a sample formula:", sample_formulas)
 user_input = st.text_input("Or enter your own formula", value=sample)
 
-
-# --- Clean formula with optional autocorrection ---
-def clean_formula(formula, autocorrect=True):
+# --- Clean formula with improved autocorrection ---
+def clean_formula(formula):
     formula = formula.strip().replace(" ", "")
     corrected = ""
     i = 0
 
     while i < len(formula):
+        # Two-letter element symbol
         if i + 1 < len(formula):
-            two_letter = (formula[i] + formula[i+1])
-            two_letter = two_letter.title() if autocorrect else two_letter
+            two_letter = formula[i].upper() + formula[i+1].lower()
             if two_letter in atomic_weights:
                 corrected += two_letter
                 i += 2
                 continue
 
-        one_letter = formula[i]
-        one_letter = one_letter.upper() if autocorrect else one_letter
+        # One-letter element
+        one_letter = formula[i].upper()
         if one_letter in atomic_weights:
             corrected += one_letter
             i += 1
@@ -47,12 +42,15 @@ def clean_formula(formula, autocorrect=True):
             corrected += formula[i]
             i += 1
         else:
-            i += 1  # skip unknown characters
+            i += 1  # skip unknown character
 
     return corrected
 
+# --- Formula Part Splitter ---
+def split_formula_parts(formula):
+    return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
 
-# --- Parse formula into element counts ---
+# --- Parser ---
 def parse_formula(formula):
     def multiply_group(group, multiplier):
         return {el: cnt * multiplier for el, cnt in group.items()}
@@ -69,7 +67,6 @@ def parse_formula(formula):
 
     while i < len(formula):
         char = formula[i]
-
         if char == "(":
             stack.append(current)
             current = {}
@@ -81,8 +78,8 @@ def parse_formula(formula):
                 mult += formula[i]
                 i += 1
             mult = int(mult) if mult else 1
-            last_group = stack.pop()
-            current = merge_groups(last_group, multiply_group(current, mult))
+            last = stack.pop()
+            current = merge_groups(last, multiply_group(current, mult))
         else:
             match = element_regex.match(formula, i)
             if match:
@@ -98,24 +95,20 @@ def parse_formula(formula):
                 return None
     return current
 
-
-# --- Handle hydrates and dot notation ---
-def split_formula_parts(formula):
-    return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
-
+# --- Suggestion logic for common confusion ---
+def suggest_common_mistakes(raw_formula, cleaned_formula):
+    if raw_formula.lower() == "no2" and cleaned_formula == "No2":
+        st.warning("`No2` was interpreted as **Nobelium (No) × 2**.\n\nDid you mean **Nitrogen Dioxide** (`NO2`)? Try using capital letters: `NO2`.")
+    if raw_formula.lower() == "co" and cleaned_formula == "Co":
+        st.warning("`Co` was interpreted as **Cobalt**. If you meant **Carbon Monoxide**, try typing `CO`.")
 
 # --- Main Logic ---
 if user_input:
-    cleaned_input = clean_formula(user_input, autocorrect=autocorrect)
+    cleaned = clean_formula(user_input)
+    suggest_common_mistakes(user_input, cleaned)
 
-    if not autocorrect and cleaned_input != user_input:
-        st.warning("⚠️ You have disabled autocorrection. Please use correct element symbols and capitalization (e.g., `Na`, not `na`).")
-
-    elif autocorrect and cleaned_input != user_input:
-        st.info(f"🔄 Autocorrected input: `{user_input}` → `{cleaned_input}`")
-
+    all_parts = split_formula_parts(cleaned)
     total_weight = 0.0
-    all_parts = split_formula_parts(cleaned_input)
 
     st.subheader("🧬 Element Breakdown")
 
@@ -128,8 +121,8 @@ if user_input:
                 weight = atomic_weights[el]
                 st.write(f"{el} × {count} → {weight} × {count} = {weight * count:.3f} g/mol")
                 subtotal += weight * count
-            st.markdown(f"Subtotal: `{subtotal:.3f} g/mol`")
             total_weight += subtotal
+            st.markdown(f"Subtotal: `{subtotal:.3f} g/mol`")
             st.markdown("---")
 
     st.success(f"✅ **Molecular Weight: {total_weight:.3f} g/mol**")
