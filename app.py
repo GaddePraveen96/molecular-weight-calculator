@@ -27,28 +27,54 @@ def clean_formula(formula):
     formula = formula.strip().replace(" ", "")
     corrected = ""
     i = 0
+
+    # Elements known to cause confusion — exotic, less common in real formulas
     exotic_elements = {"No", "Lr", "Mt", "Rf", "Db", "Bh", "Hs", "Cn", "Fl", "Lv", "Mc", "Ts", "Og"}
 
+    # Common ambiguous patterns and how to interpret them
+    common_split_preference = {
+        "NO2": ("N", "O2"),
+        "NO3": ("N", "O3"),
+        "NO4": ("N", "O4"),
+        "LR3": ("L", "R3"),
+        "MT2": ("M", "T2"),
+        "MT3": ("M", "T3"),
+        "CN2": ("C", "N2"),
+        "CN3": ("C", "N3"),
+        "CN4": ("C", "N4"),
+        "OG2": ("O", "G2"),
+        "OG3": ("O", "G3"),
+        "OG4": ("O", "G4"),
+        "DB2": ("D", "B2"),
+        "DB3": ("D", "B3"),
+        "TS2": ("T", "S2"),
+        "TS3": ("T", "S3"),
+        "FL2": ("F", "L2"),
+        "FL3": ("F", "L3"),
+        "MC2": ("M", "C2"),
+        "MC3": ("M", "C3"),
+    }
+
     while i < len(formula):
+        # Try special disambiguation if there's at least 3 characters ahead
+        if i + 2 < len(formula):
+            triplet = formula[i:i+3].upper()
+            if triplet in common_split_preference:
+                el1, el2 = common_split_preference[triplet]
+                st.warning(f"Ambiguous formula `{triplet}` detected. Interpreting as `{el1}` + `{el2}` instead of exotic element.")
+                corrected += el1 + el2
+                i += 3
+                continue
+
+        # Try two-letter exotic or real element
         if i + 1 < len(formula):
             two_letter = formula[i].upper() + formula[i+1].lower()
-            one_letter = formula[i].upper()
-
-            if two_letter in exotic_elements and one_letter in atomic_weights and formula[i+1].isdigit():
-                # Potential ambiguity like No2 → could be Nobelium or Nitrogen Dioxide
-                alt_el = formula[i+1].upper()
-                if alt_el in atomic_weights:
-                    st.warning(
-                        f"`{formula}` was interpreted as **{two_letter} × {formula[i+2:]}**. "
-                        f"Did you mean **{one_letter}{alt_el}{formula[i+2:]}** (e.g., Nitrogen Dioxide)? "
-                        f"Try entering with clearer capitalization: `N` + `O2`."
-                    )
-
             if two_letter in atomic_weights:
                 corrected += two_letter
                 i += 2
                 continue
 
+        # Try one-letter element
         one_letter = formula[i].upper()
         if one_letter in atomic_weights:
             corrected += one_letter
@@ -57,9 +83,11 @@ def clean_formula(formula):
             corrected += formula[i]
             i += 1
         else:
-            i += 1  # skip unknown character
+            # skip unknowns silently
+            i += 1
 
     return corrected
+
 
 
 
