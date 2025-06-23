@@ -19,8 +19,11 @@ st.sidebar.markdown("""
 
 sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "No2", "LrCl3", "NO2"]
 sample = st.selectbox("Try a sample formula:", sample_formulas)
-user_input = st.text_input("Or enter your own formula", value=sample)
-
+user_input = st.text_input(
+    "Or enter your own formula",
+    value=sample,
+    help="Use correct casing (e.g., NO2 vs No2). Wrap exotic elements like Nobelium and others in parentheses if repeated: (No)2."
+)
 
 # --- Smart formula cleaner with disambiguation ---
 def clean_formula(formula):
