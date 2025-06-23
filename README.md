@@ -10,7 +10,9 @@ NaCl     → Sodium Chloride
 Fe2(SO4)3 → Iron(III) Sulfate  
 CuSO4·5H2O → Copper(II) sulfate pentahydrate  
 The app parses your formula, calculates element-wise contributions, and gives you the accurate molecular weight in g/mol.
+
 ⚠️ Formula Entry Guidelines
+
 ✅ Valid Examples
 | Input        | Meaning                                |
 | ------------ | -------------------------------------- |
@@ -20,7 +22,9 @@ The app parses your formula, calculates element-wise contributions, and gives yo
 | `C6H12O6`    | Glucose                                |
 | `Mg3(PO4)2`  | Magnesium phosphate                    |
 | `CuSO4·5H2O` | Copper sulfate pentahydrate            |
- Important Notes
+
+Important Notes
+
 Capitalization matters:
 
 NO = Nitrogen + Oxygen
@@ -36,7 +40,9 @@ Use parentheses for exotic atoms if repeated:
 Hydrates (·, *) are supported.
 
 Extra characters or symbols will be auto-cleaned.
+
 💻 Features
+
 Intelligent parsing with nested brackets
 
 Hydrate support (e.g., ·5H2O, *6H2O)
