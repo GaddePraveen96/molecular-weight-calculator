@@ -9,48 +9,58 @@ st.markdown("Enter a chemical formula like `C6H12O6`, `NaCl`, `Fe2(SO4)3`, or `C
 # Sidebar Guide
 st.sidebar.title("📘 User Guide")
 st.sidebar.markdown("""
-- Enter chemical formulas (case-insensitive): `H2SO4`, `NaCl`, `C6H12O6`
-- Use proper element casing: `NO2` for Nitrogen Dioxide (not `No2`, which is Nobelium)
-- Supports parentheses, hydrates (`·`), nested groups
+- Enter chemical formulas (case-insensitive): `h2so4`, `nacl`, `C6H12O6`
+- Supports parentheses, hydrates, nested groups
+- Avoid ambiguity (e.g., `NO2` is Nitrogen Dioxide, not Nobelium)
 """)
 
+# Sample Inputs
 sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "NO2", "Mg3(PO4)2"]
 sample = st.selectbox("Try a sample formula:", sample_formulas)
 user_input = st.text_input("Or enter your own formula", value=sample)
 
-# --- Clean formula with improved autocorrection ---
-def clean_formula(formula):
+
+def smart_tokenize(formula):
+    """Tokenizes a formula favoring common 1-letter over rare 2-letter symbols."""
     formula = formula.strip().replace(" ", "")
-    corrected = ""
+    tokens = []
     i = 0
-
     while i < len(formula):
-        # Two-letter element symbol
         if i + 1 < len(formula):
-            two_letter = formula[i].upper() + formula[i+1].lower()
-            if two_letter in atomic_weights:
-                corrected += two_letter
+            two = formula[i].upper() + formula[i+1].lower()
+            one = formula[i].upper()
+            if two in atomic_weights and one in atomic_weights:
+                if atomic_weights[one] < 100:
+                    tokens.append(one)
+                    i += 1
+                else:
+                    tokens.append(two)
+                    i += 2
+            elif two in atomic_weights:
+                tokens.append(two)
                 i += 2
-                continue
-
-        # One-letter element
-        one_letter = formula[i].upper()
-        if one_letter in atomic_weights:
-            corrected += one_letter
-            i += 1
-        elif formula[i].isdigit() or formula[i] in "()·.*":
-            corrected += formula[i]
-            i += 1
+            elif one in atomic_weights:
+                tokens.append(one)
+                i += 1
+            elif formula[i].isdigit() or formula[i] in "()·.*":
+                tokens.append(formula[i])
+                i += 1
+            else:
+                i += 1
         else:
-            i += 1  # skip unknown character
+            one = formula[i].upper()
+            if one in atomic_weights:
+                tokens.append(one)
+            elif formula[i].isdigit() or formula[i] in "()·.*":
+                tokens.append(formula[i])
+            i += 1
+    return ''.join(tokens)
 
-    return corrected
 
-# --- Formula Part Splitter ---
 def split_formula_parts(formula):
     return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
 
-# --- Parser ---
+
 def parse_formula(formula):
     def multiply_group(group, multiplier):
         return {el: cnt * multiplier for el, cnt in group.items()}
@@ -67,6 +77,7 @@ def parse_formula(formula):
 
     while i < len(formula):
         char = formula[i]
+
         if char == "(":
             stack.append(current)
             current = {}
@@ -78,8 +89,8 @@ def parse_formula(formula):
                 mult += formula[i]
                 i += 1
             mult = int(mult) if mult else 1
-            last = stack.pop()
-            current = merge_groups(last, multiply_group(current, mult))
+            last_group = stack.pop()
+            current = merge_groups(last_group, multiply_group(current, mult))
         else:
             match = element_regex.match(formula, i)
             if match:
@@ -95,20 +106,12 @@ def parse_formula(formula):
                 return None
     return current
 
-# --- Suggestion logic for common confusion ---
-def suggest_common_mistakes(raw_formula, cleaned_formula):
-    if raw_formula.lower() == "no2" and cleaned_formula == "No2":
-        st.warning("`No2` was interpreted as **Nobelium (No) × 2**.\n\nDid you mean **Nitrogen Dioxide** (`NO2`)? Try using capital letters: `NO2`.")
-    if raw_formula.lower() == "co" and cleaned_formula == "Co":
-        st.warning("`Co` was interpreted as **Cobalt**. If you meant **Carbon Monoxide**, try typing `CO`.")
 
 # --- Main Logic ---
 if user_input:
-    cleaned = clean_formula(user_input)
-    suggest_common_mistakes(user_input, cleaned)
-
-    all_parts = split_formula_parts(cleaned)
+    clean_input = smart_tokenize(user_input)
     total_weight = 0.0
+    all_parts = split_formula_parts(clean_input)
 
     st.subheader("🧬 Element Breakdown")
 
@@ -119,10 +122,11 @@ if user_input:
             st.markdown(f"**{part}**")
             for el, count in parsed.items():
                 weight = atomic_weights[el]
-                st.write(f"{el} × {count} → {weight} × {count} = {weight * count:.3f} g/mol")
+                line = f"{el} × {count} → {weight} × {count} = {weight * count:.3f} g/mol"
+                st.write(line)
                 subtotal += weight * count
-            total_weight += subtotal
             st.markdown(f"Subtotal: `{subtotal:.3f} g/mol`")
+            total_weight += subtotal
             st.markdown("---")
 
     st.success(f"✅ **Molecular Weight: {total_weight:.3f} g/mol**")
