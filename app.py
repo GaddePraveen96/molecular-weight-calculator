@@ -15,6 +15,8 @@ st.sidebar.markdown("""
 - **Use correct casing**: 
   - `NO2` → Nitrogen Dioxide
   - `No2` → Nobelium × 2
+  - `(No)2` → 2 molecules of Nobelium
+  - `CuSO4·5H2O` → Hydrate format
 """)
 
 sample_formulas = ["H2O", "NaCl", "C6H12O6", "Fe2(SO4)3", "CuSO4·5H2O", "No2", "LrCl3", "NO2"]
@@ -22,7 +24,12 @@ sample = st.selectbox("Try a sample formula:", sample_formulas)
 user_input = st.text_input(
     "Or enter your own formula",
     value=sample,
-    help="Use correct casing (e.g., NO2 vs No2). Wrap exotic elements like Nobelium and others in parentheses if repeated: (No)2."
+    help=(
+        "📌 Use correct casing: NO2 ≠ No2\n"
+        "🧪 Wrap exotic elements in parentheses if repeated: (No)2, (Lr)3\n"
+        "💧 For hydrates, use dot: CuSO4·5H2O or CuSO4.5H2O\n"
+        "🧠 Examples: Fe2(SO4)3, NaCl, C6H12O6"
+    )
 )
 
 # --- Smart formula cleaner with disambiguation ---
@@ -34,32 +41,17 @@ def clean_formula(formula):
     # Elements known to cause confusion — exotic, less common in real formulas
     exotic_elements = {"No", "Lr", "Mt", "Rf", "Db", "Bh", "Hs", "Cn", "Fl", "Lv", "Mc", "Ts", "Og"}
 
-    # Common ambiguous patterns and how to interpret them
     common_split_preference = {
-        "NO2": ("N", "O2"),
-        "NO3": ("N", "O3"),
-        "NO4": ("N", "O4"),
-        "LR3": ("L", "R3"),
-        "MT2": ("M", "T2"),
-        "MT3": ("M", "T3"),
-        "CN2": ("C", "N2"),
-        "CN3": ("C", "N3"),
-        "CN4": ("C", "N4"),
-        "OG2": ("O", "G2"),
-        "OG3": ("O", "G3"),
-        "OG4": ("O", "G4"),
-        "DB2": ("D", "B2"),
-        "DB3": ("D", "B3"),
-        "TS2": ("T", "S2"),
-        "TS3": ("T", "S3"),
-        "FL2": ("F", "L2"),
-        "FL3": ("F", "L3"),
-        "MC2": ("M", "C2"),
-        "MC3": ("M", "C3"),
+        "NO2": ("N", "O2"), "NO3": ("N", "O3"), "NO4": ("N", "O4"),
+        "LR3": ("L", "R3"), "MT2": ("M", "T2"), "MT3": ("M", "T3"),
+        "CN2": ("C", "N2"), "CN3": ("C", "N3"), "CN4": ("C", "N4"),
+        "OG2": ("O", "G2"), "OG3": ("O", "G3"), "OG4": ("O", "G4"),
+        "DB2": ("D", "B2"), "DB3": ("D", "B3"), "TS2": ("T", "S2"),
+        "TS3": ("T", "S3"), "FL2": ("F", "L2"), "FL3": ("F", "L3"),
+        "MC2": ("M", "C2"), "MC3": ("M", "C3"),
     }
 
     while i < len(formula):
-        # Try special disambiguation if there's at least 3 characters ahead
         if i + 2 < len(formula):
             triplet = formula[i:i+3].upper()
             if triplet in common_split_preference:
@@ -69,7 +61,6 @@ def clean_formula(formula):
                 i += 3
                 continue
 
-        # Try two-letter exotic or real element
         if i + 1 < len(formula):
             two_letter = formula[i].upper() + formula[i+1].lower()
             if two_letter in atomic_weights:
@@ -77,7 +68,6 @@ def clean_formula(formula):
                 i += 2
                 continue
 
-        # Try one-letter element
         one_letter = formula[i].upper()
         if one_letter in atomic_weights:
             corrected += one_letter
@@ -86,12 +76,9 @@ def clean_formula(formula):
             corrected += formula[i]
             i += 1
         else:
-            # skip unknowns silently
             i += 1
 
     return corrected
-
-
 
 
 # --- Parse formula into element counts ---
@@ -123,7 +110,7 @@ def parse_formula(formula):
                 mult += formula[i]
                 i += 1
             mult = int(mult) if mult else 1
-            last_group = stack.pop()
+            last_group = stack.pop() if stack else {}
             current = merge_groups(last_group, multiply_group(current, mult))
         else:
             match = element_regex.match(formula, i)
