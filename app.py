@@ -130,7 +130,18 @@ def parse_formula(formula):
 
 # --- Handle hydrates and dot notation ---
 def split_formula_parts(formula):
-    return [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
+    # Split on dot, middle dot, or asterisk
+    parts = [f.strip() for f in re.split(r"[·.*]", formula) if f.strip()]
+    processed = []
+    for part in parts:
+        # Convert hydrate-like patterns: 5H2O → (H2O)5
+        match = re.match(r"^(\d+)([A-Z].*)$", part)
+        if match:
+            count, group = match.groups()
+            part = f"({group}){count}"
+        processed.append(part)
+    return processed
+
 
 
 # --- Main Logic ---
